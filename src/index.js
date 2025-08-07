@@ -3,17 +3,19 @@ import path from 'path';
 import fs from 'fs';
 
 const require = createRequire(import.meta.url);
-const dataPath = path.resolve('./data/holidays.json');
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const dataPath = path.resolve(__dirname, '../data/holidays.json');
 
 let holidaysData = {};
 
 if (fs.existsSync(dataPath)) {
   try {
-    holidaysData = require(dataPath);
+    const json = fs.readFileSync(dataPath, 'utf-8');
+    holidaysData = JSON.parse(json);
   } catch (err) {
     console.warn(`[WARN] Could not parse holidays.json: ${err.message}`);
   }
-} else {
+}else {
   console.warn('[WARN] holidays.json not found. Run `--update` first.');
 }
 
