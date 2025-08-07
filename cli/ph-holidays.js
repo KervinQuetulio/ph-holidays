@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 import puppeteer from 'puppeteer';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+// Handle __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Parse CLI args
 const year = process.argv[2] || new Date().getFullYear();
 const shouldUpdate = process.argv.includes('--update');
 
@@ -17,7 +22,6 @@ console.log(`↺ Updating data for ${year}...`);
 console.log(`[INFO] Fetching: ${url}`);
 
 try {
-  // Launch headless browser
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -32,10 +36,9 @@ try {
 
   await browser.close();
 
-  // Load and parse the HTML
+  // Parse HTML using cheerio
   const $ = cheerio.load(html);
   const holidays = [];
-
   let currentType = null;
 
   $('h2, h3, h4, strong, b, p').each((_, el) => {
@@ -56,7 +59,7 @@ try {
       return;
     }
 
-    // Match rows like: "January 1 (Wednesday) – New Year's Day"
+    // Match "January 1 (Wednesday) – New Year's Day"
     const holidayRegex = /^([A-Z][a-z]+ \d{1,2}) \(([^)]+)\)\s+[–-]\s+(.+)$/i;
     const match = $(el).text().trim().match(holidayRegex);
 
@@ -76,7 +79,6 @@ try {
     process.exit(1);
   }
 
-  // Save to JSON
   if (shouldUpdate) {
     fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
     fs.writeFileSync(jsonPath, JSON.stringify({ year, holidays }, null, 2));
