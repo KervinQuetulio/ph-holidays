@@ -7,13 +7,13 @@ A trusted and complete holiday calendar for the Philippines — with support for
 
 ## ✨ Features
 
-* 🗖️ `getHolidays(year)` — Get all holidays for a given year
+* 🗆️ `getHolidays(year)` — Get all holidays for a given year
 * ✅ `isHoliday(date)` — Check if a specific date is a holiday
 * 🧠 `getHolidayInfo(date)` — Retrieve name, type, and source of holiday
 * 📉 `getLongWeekends(year)` — Identify long weekends (3+ days off)
 * 💻 CLI-ready: `npx ph-holidays`
 * ↺ `--update` flag scrapes and refreshes data for a given year
-* 🧹 Smart merge: updates only the selected year's data in `holidays.json`
+* 🧉 Smart merge: updates only the selected year's data in `holidays.json`
 * 🥪 Unit-tested with Jest for core logic
 * 📁 Structured `data/` folder for clean JSON records per year
 * ✨ Supports `Node.js >= 14` and modern ES modules
@@ -74,7 +74,7 @@ console.log(getHolidayInfo('2025-12-25')); // { name: 'Christmas Day', type: 'Re
 
 ---
 
-## 🗂️ Folder Structure
+## 📂 Folder Structure
 
 ```
 ph-holidays/
@@ -90,12 +90,14 @@ ph-holidays/
 
 ## ↺ Update Strategy
 
-| Method        | Description                                                                   |
-| ------------- | ----------------------------------------------------------------------------- |
-| **Manual**    | Run `npx ph-holidays 2024 --update` to pull new data from the Gazette         |
-| **Automated** | GitHub Actions scraper runs **monthly** to check for new proclamations        |
-| **Selective** | Only the passed `year` is refreshed in `holidays.json`, leaving others intact |
-| **Verified**  | Every holiday has a `source` field referencing the Gazette                    |
+| Method        | Description                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| **Manual**    | ✅ *Current Method* — Run `npx ph-holidays 2024 --update` to pull new data from the Gazette |
+| **Automated** | *(Planned)* GitHub Actions scraper to run **monthly** to check for new proclamations       |
+| **Selective** | Only the passed `year` is refreshed in `holidays.json`, leaving others intact              |
+| **Verified**  | Every holiday has a `source` field referencing the Gazette                                 |
+
+> ℹ️ **Note:** The update process is **manual as of now**. GitHub Actions automation will be added in a future release.
 
 ---
 
