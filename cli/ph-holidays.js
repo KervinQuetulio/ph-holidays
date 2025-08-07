@@ -1,58 +1,90 @@
 #!/usr/bin/env node
 
-import { getHolidays, getLongWeekends } from '../src/index.js';
-import { runUpdate } from '../tools/update-holidays.js';
+import puppeteer from 'puppeteer';
+import cheerio from 'cheerio';
+import fs from 'fs';
+import path from 'path';
 
-const args = process.argv.slice(2);
-const yearArg = args[0];
-const flag = args[1];
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const year = process.argv[2] || new Date().getFullYear();
+const shouldUpdate = process.argv.includes('--update');
 
-if (!yearArg || isNaN(yearArg)) {
-  console.log('❌ Please provide a valid year.');
-  process.exit(1);
-}
+const url = `https://www.officialgazette.gov.ph/nationwide-holidays/${year}/`;
+const htmlPath = path.resolve(__dirname, `../debug-gazette-${year}.html`);
+const jsonPath = path.resolve(__dirname, `../data/holidays.json`);
 
-const year = parseInt(yearArg, 10);
+console.log(`↺ Updating data for ${year}...`);
+console.log(`[INFO] Fetching: ${url}`);
 
-// 👇 Wrap inside async IIFE
-(async () => {
-  if (flag === '--update') {
-    console.log(`↺ Updating data for ${year}...`);
-    try {
-      await runUpdate(year);
-      console.log(`✅ Data updated for ${year}`);
-    } catch (err) {
-      console.error(`❌ Update failed: ${err.message}`);
-      process.exit(1);
+try {
+  // Launch headless browser
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+  const html = await page.content();
+  fs.writeFileSync(htmlPath, html);
+  console.log(`[INFO] Saved HTML to ${path.basename(htmlPath)}`);
+
+  await browser.close();
+
+  // Load and parse the HTML
+  const $ = cheerio.load(html);
+  const holidays = [];
+
+  let currentType = null;
+
+  $('h2, h3, h4, strong, b, p').each((_, el) => {
+    const text = $(el).text().trim().toLowerCase();
+
+    if (text.includes('regular holiday')) {
+      currentType = 'Regular Holiday';
+      return;
     }
-    return; // ✅ allowed now inside the IIFE
-  }
 
-  // 📆 Load from local data
-  const holidays = getHolidays(year);
+    if (text.includes('special') && text.includes('non-working')) {
+      currentType = 'Special (Non-Working) Holiday';
+      return;
+    }
 
-  if (!holidays.length) {
-    console.log(`❌ No data found for year ${year}`);
+    if (text.includes('special') && text.includes('working')) {
+      currentType = 'Special (Working) Holiday';
+      return;
+    }
+
+    // Match rows like: "January 1 (Wednesday) – New Year's Day"
+    const holidayRegex = /^([A-Z][a-z]+ \d{1,2}) \(([^)]+)\)\s+[–-]\s+(.+)$/i;
+    const match = $(el).text().trim().match(holidayRegex);
+
+    if (match && currentType) {
+      const [, dateText, day, name] = match;
+      holidays.push({
+        date: `${dateText}, ${year}`,
+        day,
+        name,
+        type: currentType,
+      });
+    }
+  });
+
+  if (holidays.length === 0) {
+    console.warn(`[WARN] No holiday data parsed for year ${year}.`);
     process.exit(1);
   }
 
-  console.log(`🇵🇭 PH Holidays for ${year}`);
-
-  if (flag === '--long-weekends') {
-    console.log('📉 Showing long weekends only\n');
-    const weekends = getLongWeekends(year);
-    if (!weekends.length) {
-      console.log('❌ No long weekends found.');
-      process.exit(0);
-    }
-
-    weekends.forEach(({ start, end, days, label }) => {
-      console.log(`🗓️ ${start} → ${end} (${days} days): ${label}`);
-    });
+  // Save to JSON
+  if (shouldUpdate) {
+    fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
+    fs.writeFileSync(jsonPath, JSON.stringify({ year, holidays }, null, 2));
+    console.log(`✅ Holidays updated to ${path.relative(process.cwd(), jsonPath)}`);
   } else {
-    console.log('📆 Showing all holidays\n');
-    holidays.forEach(h => {
-      console.log(`📅 ${h.date} — ${h.name} (${h.type})`);
-    });
+    console.log(JSON.stringify(holidays, null, 2));
   }
-})();
+} catch (err) {
+  console.error(`❌ Update failed: ${err.message}`);
+  process.exit(1);
+}
