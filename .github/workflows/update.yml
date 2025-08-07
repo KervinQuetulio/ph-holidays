@@ -2,7 +2,7 @@ name: Update Holidays Data
 
 on:
   schedule:
-    - cron: '0 0 1 * *'
+    - cron: '0 0 1 * *' # Run monthly, 1st day at midnight
   workflow_dispatch:
 
 jobs:
@@ -10,14 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: 20
+
+      - name: Install Chromium dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2 libatk1.0-0 libcups2 libdbus-1-3 \
+            libgdk-pixbuf2.0-0 libnspr4 libnss3 \
+            libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 \
+            xdg-utils libu2f-udev fonts-liberation libappindicator3-1
+
       - run: npm ci
-      - run: node cli/ph-holidays.js 2025 --update
-      - run: |
+
+      - name: Update holidays for current year
+        run: |
+          YEAR=$(date +'%Y')
+          node cli/ph-holidays.js $YEAR --update
+
+      - name: Commit changes
+        run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add data/holidays.json
-          git commit -m "🔄 Auto-update holidays for 2025" || echo "No changes"
+          git commit -m "🔄 Auto-update holidays" || echo "No changes"
           git push
