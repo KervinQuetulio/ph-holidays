@@ -1,0 +1,34 @@
+name: Update Holidays Data
+
+on:
+  schedule:
+  - cron: '0 0 1 * *' # Run monthly, 1st day at midnight
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Update holidays for current year
+        run: |
+          CURRENT_YEAR=$(date +'%Y')
+          node cli/ph-holidays.js $CURRENT_YEAR --update
+
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add data/holidays.json
+          git commit -m "🔄 Auto-update holidays" || echo "No changes"
+          git push

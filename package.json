@@ -1,0 +1,32 @@
+{
+  "name": "ph-holidays",
+  "version": "0.1.0",
+  "description": "A trusted and complete holiday calendar for the Philippines with long weekend detection and auto-updated data from official sources.",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "ph-holidays": "./cli/ph-holidays.js"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "update": "node tools/update-holidays.js"
+  },
+  "keywords": [
+    "philippines",
+    "holidays",
+    "calendar",
+    "long-weekend",
+    "dole",
+    "official-gazette"
+  ],
+  "author": "Kervs Quetulio",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^24.16.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
