@@ -2,7 +2,7 @@ name: Update Holidays Data
 
 on:
   schedule:
-  - cron: '0 0 1 * *' # Run monthly, 1st day at midnight
+    - cron: '0 0 1 * *' # Run monthly, 1st day at midnight
   workflow_dispatch:
 
 jobs:
@@ -22,13 +22,15 @@ jobs:
 
       - name: Update holidays for current year
         run: |
+          set -e
           CURRENT_YEAR=$(date +'%Y')
-          node cli/ph-holidays.js $CURRENT_YEAR --update
+          node ./cli/ph-holidays.js "$CURRENT_YEAR" --update
 
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add data/holidays.json
-          git commit -m "🔄 Auto-update holidays" || echo "No changes"
+          git add "data/holidays.json"
+          git commit -m "🔄 Auto-update holidays" || echo "No changes to commit"
+          git pull --rebase origin main || true
           git push
