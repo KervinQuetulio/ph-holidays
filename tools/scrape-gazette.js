@@ -1,9 +1,12 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createRequire } from 'node:module';
 import fs from 'fs';
 
 const require = createRequire(import.meta.url);
 const cheerio = require('cheerio');
+
+puppeteer.use(StealthPlugin());
 
 export async function scrapeHolidayData(year = new Date().getFullYear()) {
   const url = `https://www.officialgazette.gov.ph/nationwide-holidays/${year}/`;
@@ -19,50 +22,43 @@ export async function scrapeHolidayData(year = new Date().getFullYear()) {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
   );
 
-  await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
+  await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
   const html = await page.content();
   await browser.close();
 
-  // Save raw HTML for debugging
-  fs.writeFileSync(`debug-gazette-${year}.html`, html);
-  console.log(`[INFO] Saved HTML to debug-gazette-${year}.html`);
+  const debugFile = `debug-gazette-${year}.html`;
+  fs.writeFileSync(debugFile, html);
+  console.log(`[INFO] Saved HTML to ${debugFile}`);
 
   const $ = cheerio.load(html);
   const holidays = [];
 
-  const sections = {
-    'A. Regular Holidays': 'Regular',
-    'B. Special (Non-Working) Holidays': 'Special (Non-Working)',
-    'C. Special (Working) Holidays': 'Special (Working)'
+  const sectionMap = {
+    '#nationwide-regular-holidays': 'Regular Holiday',
+    '#nationwide-special-holidays': 'Special (Non-Working) Holiday'
   };
 
-  Object.entries(sections).forEach(([heading, type]) => {
-    const h4 = $(`h4:contains("${heading}")`);
-    if (!h4.length) {
-      console.warn(`[WARN] Section heading "${heading}" not found.`);
-      return;
+  for (const [sectionId, type] of Object.entries(sectionMap)) {
+    const section = $(sectionId);
+    if (!section.length) {
+      console.warn(`[WARN] Section not found: ${sectionId}`);
+      continue;
     }
 
-    const table = h4.next('table');
-    if (!table.length) {
-      console.warn(`[WARN] No table found under "${heading}"`);
-      return;
-    }
-
-    table.find('tbody tr').each((_, row) => {
+    section.find('table tbody tr').each((_, row) => {
       const name = $(row).find('.holiday-what').text().trim();
-      const abbr = $(row).find('abbr');
-      const fullDate = abbr.attr('title'); // e.g., "April 1, 2025"
+      const abbr = $(row).find('.holiday-when abbr');
+      const fullDate = abbr.attr('title');
 
       if (!name || !fullDate) return;
 
-      const date = new Date(fullDate);
-      if (isNaN(date)) {
+      const dateObj = new Date(fullDate);
+      if (isNaN(dateObj)) {
         console.warn(`[WARN] Invalid date "${fullDate}" for ${name}`);
         return;
       }
 
-      const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
       holidays.push({
         date: formattedDate,
@@ -71,13 +67,12 @@ export async function scrapeHolidayData(year = new Date().getFullYear()) {
         source: url
       });
     });
-  });
+  }
 
   if (!holidays.length) {
     throw new Error(`No holiday data parsed for year ${year}.`);
   }
 
   console.log(`[INFO] Extracted ${holidays.length} holidays for ${year}`);
-
-  return holidays; // ✅ Only return the array, don't write to file
+  return holidays;
 }

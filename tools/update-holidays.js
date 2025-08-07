@@ -10,10 +10,10 @@ const dataPath = path.join(__dirname, '../data/holidays.json');
 export async function runUpdate(year = new Date().getFullYear()) {
   const holidays = await scrapeHolidayData(year);
 
-  // ✅ Only throw if holidays is invalid or empty
-if (!Array.isArray(holidays) || holidays.length === 0) {
-  throw new Error(`[FAIL] No holiday array returned for year ${year}`);
-}
+  if (!Array.isArray(holidays) || holidays.length === 0) {
+    throw new Error(`[FAIL] No holiday array returned for year ${year}`);
+  }
+
   let data = {};
   if (fs.existsSync(dataPath)) {
     try {
@@ -24,7 +24,6 @@ if (!Array.isArray(holidays) || holidays.length === 0) {
     }
   }
 
-  // ✅ Assign only the requested year
   data[year] = holidays;
 
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), 'utf-8');

@@ -1,6 +1,6 @@
 {
   "name": "ph-holidays",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "A trusted and complete holiday calendar for the Philippines with long weekend detection and auto-updated data from official sources.",
   "main": "src/index.js",
   "type": "module",
@@ -24,9 +24,16 @@
   "dependencies": {
     "cheerio": "^1.1.2",
     "node-fetch": "^3.3.2",
-    "puppeteer": "^24.16.0"
+    "puppeteer": "^24.16.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
     "jest": "^29.7.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KervinQuetulio/ph-holidays.git"
+  },
+  "homepage": "https://www.npmjs.com/package/ph-holidays"
 }
